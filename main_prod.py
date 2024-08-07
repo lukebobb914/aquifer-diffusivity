@@ -607,7 +607,7 @@ def create_sa_results_df(well_amp_x: np.ndarray, well_amp: np.ndarray, shore_amp
     for i in data: 
         print(i)
     df = pd.DataFrame(data, index=index)
-    df.columns = df.iloc[1]
+    # df.columns = df.iloc[1]
     return df
 
 def replace_missing_inds_with_null(input_array: np.ndarray, indices: np.ndarray) -> np.ndarray: 
@@ -658,7 +658,7 @@ def create_tl_results_df(lotx_c_peaks: np.ndarray, lot0_peaks: np.ndarray, t_lag
     data = [lotx_c_peaks_p, lot0_peaks_p, t_lags_peaks_p, diff_peaks_p, diff_filtered_peaks_p, lotx_c_troughs_p, lot0_troughs_p, t_lags_troughs_p, diff_troughs_p, diff_filtered_troughs_p]
     index = ['Well Peak Hours (h)', 'Shore Peak Hours (h)', 'Time Lag Peaks (h)', 'T/S Peaks (m²/s)', 'T/S Peaks Filtered (m²/s)', 'Well Trough Hours (h)', 'Shore Trough Hours (h)', 'Time Lag Trough (h)', 'T/S Trough (m²/s)', 'T/S Trough Filtered (m²/s)']
     df = pd.DataFrame(data, index=index)
-    df.columns = df.iloc[1]
+    # df.columns = df.iloc[1]
     return df
 
 def pad_array(arr, length):
