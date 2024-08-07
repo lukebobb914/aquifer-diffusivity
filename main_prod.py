@@ -710,28 +710,6 @@ def get_shore_name(shore_fps: Tuple[List[str], bool]) -> str:
         stn_name = parts[2]
         return stn_name
 
-
-
-
-#%% ## PARAMETERS: 
-data_folder = r"\\spatialfiles.bcgov\srm\sry\Workarea\mjchan\transmissivity\data"
-# shore_fp = os.path.join(data_folder, "predictions_07895_Mitlenatch_2023-08-14.csv")
-# shore_fp1 = os.path.join(data_folder, "Annual_Predictions_Mitlenatch_2023.csv")
-# shore_fp2 = os.path.join(data_folder, "Annual_Predictions_Mitlenatch_2024.csv")
-# well_fp = os.path.join(data_folder, "MASL_OW511.csv")
-well_x_col = 'Timestamp (UTC)'
-well_y_col = 'Value (m)'
-# shore_x_col = 'Date'
-# shore_y_col = 'predictions (m)'
-shore_x_col = 'Date and time (UTC)'
-shore_y_col = 'Metres'
-# window_length = 100
-# correction_factor = 3.2
-# initial_guess = [0.030, 23, 4.5, 0.9] 
-# x = 154.8                               # dist to shore 
-# t = 12.67 * 3600                        # time per tidal cycle
-
-
 def fit_fn(t, A, B, C, D) -> float: 
     """ 
     sine composite function used by Elyse where: 
