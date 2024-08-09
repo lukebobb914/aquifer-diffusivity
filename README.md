@@ -3,6 +3,10 @@
 >
 > Visit here to use application [Streamlit Application](https://aquifer-diffusivity-calculator.streamlit.app/)
 
+> Equations Used
+> ![image](https://github.com/user-attachments/assets/9d361204-7779-45e7-9a83-234390fa37ae)
+
+
 ## Methodology Used
 1.	Obtain groundwater and tide/hydrometric water level data 
 2.	Choose optimal time frame of with a length of100 hours, based on most minimal groundwater level fluctuations
@@ -21,7 +25,6 @@
      * Remove outliers
      * Compute mean T/S
 
-![image](https://github.com/user-attachments/assets/9d361204-7779-45e7-9a83-234390fa37ae)
 
 
 ## References
