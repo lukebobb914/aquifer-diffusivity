@@ -21,6 +21,9 @@
      * Remove outliers
      * Compute mean T/S
 
+![image](https://github.com/user-attachments/assets/9d361204-7779-45e7-9a83-234390fa37ae)
+
+
 ## References
 Ferris, J.G., D.B. Knowles, R.H. Brown and R.W. Stallman, 1962. Theory of aquifer tests, U.S. Geol. Surv. 1536, 174
 
