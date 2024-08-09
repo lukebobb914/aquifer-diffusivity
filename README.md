@@ -20,3 +20,12 @@
      * Compute T/S for each time lag 
      * Remove outliers
      * Compute mean T/S
+
+## References
+Ferris, J.G., D.B. Knowles, R.H. Brown and R.W. Stallman, 1962. Theory of aquifer tests, U.S. Geol. Surv. 1536, 174
+
+Fisheries and Oceans Canada. (2024). Tides, Currents and Water Levels. https://www.tides.gc.ca/en/stations
+
+Province of British Columbia. (2024). Aquarius. https://aqrt.nrs.gov.bc.ca/Data 
+
+Todd, D.K., 1980. Groundwater Hydrology, 2nd ed., John Wiley & Sons, 535
