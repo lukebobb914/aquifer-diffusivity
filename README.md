@@ -6,7 +6,7 @@
 ## Methodology Used
 > ![image](https://github.com/user-attachments/assets/9d361204-7779-45e7-9a83-234390fa37ae)
 1.	Obtain groundwater and tide/hydrometric water level data 
-2.	Choose optimal time frame of with a length of100 hours, based on most minimal groundwater level fluctuations
+2.	Choose optimal time frame of with a length of h hours, based on most minimal groundwater level fluctuations
 3.	Fit groundwater level data with a composite sine curve 
 4.	Simplified Amplitude Analysis:
      * Calculate well/shore amplitudes
