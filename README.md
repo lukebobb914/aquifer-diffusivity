@@ -1,6 +1,7 @@
 # Characterizing Aquifer Diffusivity
 > The application calculates the aquifer diffusivity using the simplified amplitude and time lag equations for groundwater wells that are tidally influenced
-> \nVisit here to use application [Streamlit Application](https://aquifer-diffusivity-calculator.streamlit.app/)
+>
+> Visit here to use application [Streamlit Application](https://aquifer-diffusivity-calculator.streamlit.app/)
 
 ## Methodology Used
 1.	Obtain groundwater and tide/hydrometric water level data 
