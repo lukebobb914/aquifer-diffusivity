@@ -12,9 +12,9 @@
     iv.	Compute T/S for each Hx/h0 value
     v.	Remove outliers
     vi.	Compute mean T/S 
-5.	Time Lag Analysis: 
-    i.	Identify time at peaks/troughs for both well/shore 
-    ii.	Compute time lags for peaks/troughs 
+5.	Time Lag Analysis:
+     * Identify time at peaks/troughs for both well/shore 
+     * Compute time lags for peaks/troughs 
     iii.	Compute T/S for each time lag 
     iv.	Remove outliers
     v.	Compute mean T/S
