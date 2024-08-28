@@ -45,18 +45,6 @@ def main(stn_name: str, shore_stn: str, shore_df: pd.DataFrame, shore_x_col: str
     # result = f"----- OW{stn_name} Results ----- \nAmplitude Analysis\nhead effs: {efficiencies}\navg T/S = {avg_diff1}, sd = {sd1}\n\nTime Lag Analysis\nt lags: {t_lags}\navg T/S = {avg_diff2}, sd = {sd2}\n---------------------------\n"
     return params, plot, summary_df, sa_df, tl_df, start_end_date, final_graph, plot
 
-# def import_data(shore_fps: Tuple[List[str], bool], well_fp: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
-#     """ 
-#     imports the shore and well water level csv files and filter well data to 2 years where shore_fps is a tuple 
-#     containing list of fps and bool where True when importing river data from aquarius and False when importing 
-#     tide chart data
-#     """
-#     shore_df = import_shore_data(*shore_fps) 
-#     well_df = import_aquarius_data(well_fp)
-#     # well_df = well_df[(well_df[well_x_col] >= "2023-01-01")]
-
-#     return shore_df, well_df
-
 def import_shore_data(shore_fps: List) -> pd.DataFrame: 
     """ 
     imports yearly shore data (max/min) data and concatenates them into single df 
