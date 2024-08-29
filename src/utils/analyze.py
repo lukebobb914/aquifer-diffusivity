@@ -1,187 +1,17 @@
-#%%
 import pandas as pd
 pd.options.mode.chained_assignment = None  
-import os
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.ticker import MultipleLocator
 from scipy.optimize import curve_fit
 from scipy.signal import find_peaks
 from scipy.fft import fft, fftfreq
-import datetime
 import math
 from typing import List, Tuple
 from scipy.interpolate import PchipInterpolator
 
-#%%
-def main(stn_name: str, shore_stn: str, shore_df: pd.DataFrame, shore_x_col: str, shore_y_col: str, correction_factor: float, well_df: pd.DataFrame, well_x_col: str, well_y_col: str, window_length: int, initial_guess: List[float] | None, fit_fn, x: float, t: float, min_dist: int, z_thresh: float): 
-    """ 
-    calculates the simplified amplitude and time lag diffusivity (T/S) and plots the best fit sine curve and the final shore/river curve with the fitted gw sine curve given the following params: 
-        1. stn name: name of gw station 
-        2. shore_df: shore waterlevel df 
-        3. shore_x_col: shore/river col x name 
-        4. shore_y_col: shore/river col y name  
-        5. correction factor: # to subtract from shore/river water level 
-        6. well_df: well water level df 
-        7. well_x_col: well col x name
-        8. well_y_col: well col y name
-        9. window_length: t in hours of plot's duration (can increase/decrease to find better optimal time period)
-        10. initial_guess: initial guess of params for gw sine curve 
-        11. fit_fn: sine function that will be used for curve fittin g
-        12. x: closest straight line distance from well to shore/river [m]
-        13. t: tidal period [s]
-        14. min_dist: min # of indices for amplitude (increase if well curve's optimal time range consists of many small peaks/troughs within tidal period)
-        15. z_thresh: is the max z-score that a t-lag can have to be included in the t-lag T/S calculations 
-    """
-    # steps: 
-    # 1) import csv files 
-    # 2) calculate T/S value 
-    # 3) plot shore + fitted well 
-    # shore_df, well_df = import_data(shore_fps, well_fp)
-    shore_df_cleaned, well_df_cleaned, start_end_date = clean_input_data(well_df, well_x_col, well_y_col, window_length, min_dist, shore_df, shore_x_col, shore_y_col, correction_factor)
-    initial_guess = compute_initial_guess(well_df_cleaned, well_y_col, initial_guess)
-    params, plot, summary_df, sa_df, tl_df = analyze(stn_name, shore_df_cleaned, shore_y_col, well_df_cleaned, well_y_col, initial_guess, fit_fn, x, t, min_dist, z_thresh)
-    final_graph = plot_final_graph(stn_name, params, fit_fn, shore_df_cleaned, shore_y_col, shore_stn)
-    # result = f"----- OW{stn_name} Results ----- \nAmplitude Analysis\nhead effs: {efficiencies}\navg T/S = {avg_diff1}, sd = {sd1}\n\nTime Lag Analysis\nt lags: {t_lags}\navg T/S = {avg_diff2}, sd = {sd2}\n---------------------------\n"
-    return params, plot, summary_df, sa_df, tl_df, start_end_date, final_graph, plot
 
-def import_shore_data(shore_fps: List) -> pd.DataFrame: 
-    """ 
-    imports yearly shore data (max/min) data and concatenates them into single df 
-    """
-    dfs = []
-    for fp in shore_fps: 
-        df = pd.read_csv(fp)
-        dfs.append(df)
-
-    reversed_dfs = dfs[::-1]
-    shore_df = pd.concat(reversed_dfs, ignore_index=True)
-    return shore_df
-
-def import_aquarius_data(fp) -> pd.DataFrame: 
-    """ 
-    imports water level data from aquarius  
-    """
-    df = pd.read_csv(fp, skiprows=2)
-    return df
-
-## ------------------------ Functions for cleaning well df --------------------------- ##
-def clean_input_data(well_df: pd.DataFrame, well_x_col: str, well_y_col: str, window_length: int, min_dist: int, shore_df: pd.DataFrame, shore_x_col: str, shore_y_col: str, correction_factor: float) -> Tuple[pd.DataFrame, pd.DataFrame, Tuple]:
-    """ 
-    returns a cleaned well df and a cleaned shore df ready to be analyzed 
-    """
-    well_df_cleaned, start_end_date = clean_well_df(well_df, well_x_col, well_y_col, window_length, min_dist)
-    shore_df_cleaned = clean_shore_df(shore_df, shore_x_col, shore_y_col, correction_factor, *start_end_date)
-    return shore_df_cleaned, well_df_cleaned, start_end_date
-
-def clean_well_df(df: pd.DataFrame, x_col: str, y_col: str, window_length: int, min_dist: int) -> Tuple[pd.DataFrame, Tuple]: 
-    """
-    cleans the water level column and creates new hours column starting from the first entry returning the cleaned 
-    df and the start/end date returning the cleaned df and optimal start/end date
-    """
-    # steps: 
-    # 1) drop rows where Value col is na 
-    # 2) convert Timestamp col to datetime type 
-    # 3) find optimal start/end dates 
-    # 4) filter df by optimal start/end dates
-    # 5) create new hours column
-    df = df.dropna(subset=[y_col])            
-    df = df.reset_index(drop=True)                                                          # reset index
-    df[x_col] = pd.to_datetime(df[x_col])                                                   # convert date to datetime 
-    start_date, end_date = get_optimal_start_end(df, x_col, y_col, window_length, min_dist)           # get optimal start/end dates
-    df_subset = filter_df_by_date(df, start_date, end_date, x_col)                          # filter for date range
-    df_subset = df_subset.reset_index(drop=True)                                            # reset index
-    df_subset = create_new_hours_col(df_subset, x_col, start_date)                          # convert to decimial hours from start date
-    return df_subset, (start_date, end_date)
-
-def get_optimal_start_end(df: pd.DataFrame, x_col: str, y_col: str, window_length: int, min_dist: int) -> Tuple[str, str]: 
-    """ 
-    returns the most optimal (most minimal differences in peaks) start/end dates based on inputted window_length which 
-    denotes the time frame to look at; where peaks are identified by looking for max values within a min time period of 12 hours
-    which denotes the time period for half of sine wave's cycle
-    """
-    # steps: 
-    # 1) extract x and y values from col 
-    # 2) get x_values of most optimal time range
-    # 3) get most optimal start/end x_values 
-    x_values = df[x_col].values          # extract x_values
-    y_values = df[y_col].values          # extract y_values
-    optimal_x_values, sd = get_optimal_x_values(x_values, y_values, window_length, min_dist)
-    print(f"lowest SD = {sd}")
-    print(f"optiaml start date: {optimal_x_values[0]}")
-    return optimal_x_values[0], optimal_x_values[-1]
-
-def get_optimal_x_values(x_values, y_values, window_length: int, min_dist: int) -> Tuple[np.ndarray, np.float64]: 
-    """ 
-    determines the best range with size window_length that has lowest sd at peak values and 
-    returns an array of x-values from that most optimal time range where min_dist is the min 
-    index distance away a max value will be identified 
-    """
-    best_window = np.array(['', ''])
-    lowest_sd = float('inf')
-
-    for i in range(len(x_values) - window_length + 1):            # minus window size to not go over bound 
-        x_window_values = x_values[i:i + window_length]           # extract x-values within range
-        y_window_values = y_values[i:i + window_length]           # extract y-values within range
-
-        ## find the peaks 
-        peak_inds, _ = find_peaks(y_window_values, distance=min_dist)  # get y_window_values indices of all peaks with min sep of 12 indices
-        peak_values = y_window_values[peak_inds]                 # extract the actual value using peak_inds from y_window_values
-        sd = np.std(peak_values)                                 # calc sd
-
-        if sd < lowest_sd:
-            lowest_sd = sd
-            best_window = x_window_values                
-
-    return best_window, lowest_sd
-
-def filter_df_by_date(df: pd.DataFrame, start_date, end_date, date_col: str) -> pd.DataFrame: 
-    """ 
-    filters UTC date col (str type) by start and end dates 
-    """
-    df = df[(df[date_col] >= start_date) & (df[date_col] <= end_date)]
-    return df
-
-def create_new_hours_col(df: pd.DataFrame, date_col: str, start_datetime) -> pd.DataFrame:
-    """ 
-    returns a series of the datetime col values and converts it to decimal hours from start datetime 
-    """
-    if not isinstance(start_datetime, np.datetime64): 
-        start_datetime = datetime.datetime(*start_datetime)
-
-    df["Hours"] = df[date_col].apply(lambda x: datetime_to_hours(x, start_datetime))
-    return df                                      
-                                      
-def datetime_to_hours(input_datetime, start_datetime) -> float: 
-    """ 
-    converts datetime to hours from start datetime
-    """
-    diff = input_datetime - start_datetime
-    hours = diff.total_seconds() / 3600
-    return hours
-
-## ------------------ Functions to clean shore df --------------------------
-def clean_shore_df(shore_df: pd.DataFrame, shore_x_col: str, shore_y_col: str, correction_factor: float, start_datetime: np.datetime64, end_datetime: np.datetime64) -> pd.DataFrame: 
-    """ 
-    cleans the water level column and creates new hours column starting from the first entry 
-    """
-    # steps: 
-    # 1) remove ' UTC' from col values
-    # 2) drop rows where Value col is na 
-    # 3) convert date col to datetime type 
-    # 4) filter df by start/end dates
-    # 5) create new hours column
-    # 6) apply correction factor to y_col 3.2
-    # shore_df[shore_x_col] = shore_df[shore_x_col].str.replace(' UTC', '') 
-    shore_df = shore_df.dropna(subset=[shore_y_col])
-    shore_df[shore_x_col] = pd.to_datetime(shore_df[shore_x_col])                                             
-    shore_df = filter_df_by_date(shore_df, start_datetime, end_datetime, shore_x_col)                           
-    shore_df = shore_df.reset_index(drop=True)
-    shore_df = create_new_hours_col(shore_df, shore_x_col, start_datetime)           
-    shore_df[shore_y_col] = shore_df[shore_y_col] - correction_factor
-    return shore_df   
-
-## --------------------------- Functions for guessing initial params ---------------------------------------- 
+###### --------------------------- Functions for guessing initial params ---------------------------------------- 
 def compute_initial_guess(well_df: pd.DataFrame, well_y_col: str, initial_guess: List[float] | None) -> List[float]: 
     """ 
     returns an initial guess of params for composite sine function, if initial_guess is not None then will return initial_guess 
@@ -230,7 +60,7 @@ def guess_amplitudes(y: np.ndarray) -> Tuple[float, float]:
     A2_est = (np.max(y) - np.min(y)) / 4
     return A1_est, A2_est
 
-
+##### ----------------------------------------- Analyze Function ------------------------------------------
 def analyze(stn_name: str, shore_df_cleaned: pd.DataFrame, shore_y_col: str, well_df_cleaned: pd.DataFrame, well_y_col: str, initial_guess: List[float], fit_fn, x: float, t: float, min_dist: int, z_thresh: float): 
     """     
     computes the diffusivity value given the shore and well water level data returning the diffusivity, curve parameters, and cleaned shore df 
@@ -256,7 +86,7 @@ def analyze(stn_name: str, shore_df_cleaned: pd.DataFrame, shore_y_col: str, wel
     tl_df = create_tl_results_df(lotx_c_peaks, lot0_peaks, t_lags_peaks, lotx_c_troughs, lot0_troughs, t_lags_troughs, diff_values2, diff_indices2)
     return params, plot, summary_df, sa_df, tl_df
 
-## ----------------- Functions fitting sine curve --------------------
+# ----------------- Functions fitting sine curve --------------------
 def get_best_fit_params(stn_name: str, df: pd.DataFrame, x_col: str, y_col: str, initial_guess: List[float], fit_fn) -> np.ndarray: 
     """ 
     returns the parameters for best fitted curve based on initial guess and fit function 
@@ -450,7 +280,7 @@ def simplified_amp_eqn(x, avg_eff, t) -> float:
     """
     return (math.pi/t) * (-x / math.log(avg_eff))**2
 
-## --------------------------- Functions to get time average time lag at peaks/troughs -----------------------------------
+# --------------------------- Functions to get time average time lag at peaks/troughs -----------------------------------
 def get_all_time_lags(fit_fn, params: np.ndarray, shore_df: pd.DataFrame, shore_y_col: str, min_dist: int): 
     """ 
     returns an array of all time lags for peaks and troughs 
@@ -574,7 +404,7 @@ def time_lag_eqn(x, t_lag, t) -> float:
     t_lag = t_lag * 3600
     return (x**2 * t) / (4 * np.pi * (t_lag**2))
 
-## --------------------- functions to create summary dfs -------------------------------------------------
+# --------------------- functions to create summary dfs -------------------------------------------------
 def create_summary_df(avg_diff1: np.float64, sd1: np.float64, avg_diff2: np.float64, sd2: np.float64) -> pd.DataFrame: 
     """ 
     creates summary df for averaged diffusivity values for SA and TL analysis    
@@ -652,7 +482,7 @@ def create_tl_results_df(lotx_c_peaks: np.ndarray, lot0_peaks: np.ndarray, t_lag
 def pad_array(arr, length):
     return np.pad(arr, (0, length - len(arr)), constant_values=np.nan)
 
-
+##### ------------------------------------- Plot Final Graph function ---------------------------------
 def plot_final_graph(stn_name: str, params: np.ndarray, fit_fn, shore_df_cleaned: pd.DataFrame, shore_y_col: str, shore_stn: str):
     """ 
     plots the final graph using the parameters from curve fitting (high resolution) and the shore water level data 
@@ -666,7 +496,6 @@ def plot_final_graph(stn_name: str, params: np.ndarray, fit_fn, shore_df_cleaned
     y_values = fit_fn(x_values_cont, *params)       # compute y-values 
 
     shore_x_values, shore_y_values = interpolate_shore_data(shore_df_cleaned, shore_y_col)
-    # shore_label = get_shore_name(shore_fps)    
 
     plt.figure(figsize=(20, 6))
     plt.plot(x_values_cont, y_values, marker='o', linestyle='', color='green', label=f'{stn_name}')     
@@ -680,38 +509,3 @@ def plot_final_graph(stn_name: str, params: np.ndarray, fit_fn, shore_df_cleaned
     plt.legend()
     plt.show()
     return plt
-
-def get_shore_name(shore_fps: Tuple[List[str], bool]) -> str: 
-    """ 
-    returns the stn name of shore given filepath 
-    """
-    fp = shore_fps[0][0]
-    is_river = shore_fps[1]
-    if is_river: 
-        fname = os.path.basename(fp)
-        stn_name = os.path.splitext(fname)[0]
-        return stn_name
-    else: 
-        fname = os.path.basename(fp)
-        name = os.path.splitext(fname)[0]
-        parts = name.split('_')
-        stn_name = parts[2]
-        return stn_name
-
-def fit_fn(t, A, B, C, D) -> float: 
-    """ 
-    sine composite function used by Elyse where: 
-        A is amplitude 
-        B is time period 
-        C is phase 
-        D is y-int
-    """
-    A2 = A / 2
-    B2 = 24
-    C2 = C - 5.5
-    return A2*np.sin((2*np.pi / B2) * (t + C2)) + A*np.sin((2*np.pi / B) * (t + C)) + D
-
-def composite_sine(x, A1, w1, phi1, A2, w2, phi2, offset):
-    return A1 * np.sin(w1 * x + phi1) + A2 * np.sin(w2 * x + phi2) + offset
-
-

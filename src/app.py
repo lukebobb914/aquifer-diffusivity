@@ -1,10 +1,9 @@
 #%%
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 import altair as alt
-from main_prod import import_shore_data, main, import_aquarius_data, fit_fn, composite_sine
-from typing import List, Tuple, Optional
+from utils.main import import_shore_data, main, import_aquarius_data, fit_fn, composite_sine
+from typing import Tuple, Optional
 
 
 #%%
@@ -167,3 +166,5 @@ if run_button:
 
 
 
+
+# %%
