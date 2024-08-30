@@ -1,6 +1,7 @@
 # Characterizing Aquifer Diffusivity
 This application calculates the aquifer diffusivity using the simplified amplitude and time lag equations given by (Ferris et al., 1962; Todd, 1980) for groundwater wells that are tidally influenced
 > Visit streamlit site to use application [Streamlit Application](https://aquifer-diffusivity-calculator.streamlit.app/)
+
 ![aquifer_diff_calculator](https://github.com/user-attachments/assets/6ec1d0c3-01b3-4c1b-818d-3f9227e0532d)
 
 
